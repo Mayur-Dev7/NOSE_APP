@@ -120,22 +120,19 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
         ortEnv = OrtEnvironment.getEnvironment();
         OrtSession.SessionOptions options = new OrtSession.SessionOptions();
         int cpuCores = Runtime.getRuntime().availableProcessors();
+        boolean nnapiConfigured = false;
 
-        // Register an NNAPI EP and let ONNX Runtime perform provider partitioning.
-        // A successful addNnapi call only means the provider was configured; it
-        // does not prove that every node will execute on the NPU.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             try {
                 options.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16));
                 activeExecutionProvider = "ONNX Runtime NNAPI EP (FP16 enabled)";
-                Log.i(TAG, "NNAPI Execution Provider registered");
+                nnapiConfigured = true;
+                Log.i(TAG, "NNAPI Execution Provider configured");
             } catch (Throwable t) {
-                options.setIntraOpNumThreads(Math.max(1, cpuCores));
-                options.setInterOpNumThreads(1);
-                activeExecutionProvider = "ONNX Runtime CPU (" + cpuCores + " threads)";
-                Log.w(TAG, "NNAPI registration failed; CPU fallback enabled", t);
+                Log.w(TAG, "NNAPI setup failed; using CPU fallback", t);
             }
-        } else {
+        }
+        if (!nnapiConfigured) {
             options.setIntraOpNumThreads(Math.max(1, cpuCores));
             options.setInterOpNumThreads(1);
             activeExecutionProvider = "ONNX Runtime CPU (" + cpuCores + " threads)";
@@ -143,10 +140,52 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
 
         File modelFile = new File(reactContext.getFilesDir(), "muometric_convnext_tiny_quantized.onnx");
         if (!modelFile.exists() || modelFile.length() < 1024 * 1024) {
-            throw new IllegalStateException(
-                "The ONNX model is missing or invalid (" + modelFile.length()
-                    + " bytes). The repository currently contains a Git LFS pointer instead of model weights."
-            );
+            File partialModel = new File(reactContext.getFilesDir(), modelFile.getName() + ".partial");
+            boolean restored = false;
+
+            // Preferred packaging: put the compressed weights in Android assets as
+            // models/muometric_convnext_tiny_quantized.onnx.gz. The app inflates it
+            // once to private storage; it is not unpacked into the APK's assets tree.
+            try (InputStream asset = reactContext.getAssets().open("models/muometric_convnext_tiny_quantized.onnx.gz");
+                 GZIPInputStream gzip = new GZIPInputStream(asset);
+                 FileOutputStream output = new FileOutputStream(partialModel)) {
+                copyStream(gzip, output);
+                output.getFD().sync();
+                restored = true;
+                Log.i(TAG, "Restored compressed ONNX model into private app storage");
+            } catch (Exception compressedError) {
+                partialModel.delete();
+                Log.i(TAG, "Compressed ONNX model asset unavailable; trying uncompressed asset");
+            }
+
+            if (!restored) {
+                try (InputStream asset = reactContext.getAssets().open("models/muometric_convnext_tiny_quantized.onnx");
+                     FileOutputStream output = new FileOutputStream(partialModel)) {
+                    copyStream(asset, output);
+                    output.getFD().sync();
+                } catch (Exception assetError) {
+                    partialModel.delete();
+                    throw new IllegalStateException(
+                        "ONNX model weights are missing. The tracked .onnx file is only a Git LFS pointer; "
+                        + "add the real .onnx.gz asset or restore the Git LFS object before running inference.",
+                        assetError
+                    );
+                }
+            }
+
+            if (partialModel.length() < 1024 * 1024) {
+                long invalidBytes = partialModel.length();
+                partialModel.delete();
+                throw new IllegalStateException("Restored ONNX model is invalid (" + invalidBytes + " bytes).");
+            }
+            if (modelFile.exists() && !modelFile.delete()) {
+                partialModel.delete();
+                throw new IllegalStateException("Cannot replace the old ONNX model cache.");
+            }
+            if (!partialModel.renameTo(modelFile)) {
+                partialModel.delete();
+                throw new IllegalStateException("Could not finalize the decompressed ONNX model.");
+            }
         }
 
         ortSession = ortEnv.createSession(modelFile.getAbsolutePath(), options);
@@ -154,9 +193,18 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
             inputTensorName = ortSession.getInputNames().iterator().next();
         }
         isInitialized = true;
-        Log.i(TAG, "ONNX model loaded successfully: " + modelFile.getAbsolutePath());
+        Log.i(TAG, "ONNX model loaded: " + modelFile.length() + " bytes");
         Log.i(TAG, "ONNX input tensor: " + inputTensorName);
         Log.i(TAG, "Configured execution provider: " + activeExecutionProvider);
+    }
+
+    private void copyStream(InputStream input, FileOutputStream output) throws Exception {
+        byte[] buffer = new byte[64 * 1024];
+        int count;
+        while ((count = input.read(buffer)) != -1) {
+            output.write(buffer, 0, count);
+        }
+        output.flush();
     }
 
     @ReactMethod

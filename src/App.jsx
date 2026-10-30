@@ -123,10 +123,10 @@ export default function App() {
   const [telemetry, setTelemetry] = useState({
     cpuCores: 8,
     maxMemoryMb: 512,
-    nnapiSupported: true,
-    provider: 'NNAPI (FP16 Accelerated GPU/NPU)',
+    nnapiSupported: false,
+    provider: 'Not initialized',
     latencyMs: 0,
-    peakMemoryMb: 42.4,
+    peakMemoryMb: 0,
   });
 
   // 1-to-N Gallery States
@@ -447,7 +447,7 @@ export default function App() {
         {activeTab === 'home' && <View style={styles.heroIntro}>
           <Text style={styles.heroTitle}>Cattle identity tools</Text>
           <Text style={styles.heroSubtitle}>Run muzzle biometrics directly on this device.</Text>
-          <View style={styles.runtimeBadge}><View style={styles.runtimeDot} /><Text style={styles.runtimeText}>ON-DEVICE MODEL READY</Text></View>
+          <View style={styles.runtimeBadge}><View style={styles.runtimeDot} /><Text style={styles.runtimeText}>ON-DEVICE PROCESSING</Text></View>
         </View>
 
         <View style={[styles.actionCards, activeTab !== 'home' && { display: 'none' }]}>
@@ -478,7 +478,7 @@ export default function App() {
             <View style={styles.telemetryItem}>
               <Text style={styles.telemetryLabel}>PROVIDER</Text>
               <Text style={styles.telemetryValue} numberOfLines={1}>
-                {telemetry.provider.includes('NNAPI') ? 'NNAPI (GPU/NPU)' : 'Multi-Core CPU'}
+                {telemetry.provider || 'Not initialized'}
               </Text>
             </View>
             <View style={styles.telemetryItem}>

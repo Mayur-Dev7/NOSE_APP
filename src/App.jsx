@@ -99,7 +99,8 @@ const SAMPLE_MUZZLES = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('video'); // 'video' | 'extract' | 'match'
+  const [activeTab, setActiveTab] = useState('home'); // 'video' | 'extract' | 'match'
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Video Matcher States
   const [videoPathA, setVideoPathA] = useState('sample_videos/cow_a_clip1.mp4');
@@ -461,50 +462,62 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#0B0E14" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F5F5F7" />
       <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-        {/* Navigation / Header */}
-        <View style={styles.header}>
-          <View style={styles.headerBadge}>
-            <View style={styles.pulseDot} />
-            <Text style={styles.headerBadgeText}>ONNX RUNTIME v1.17 • NNAPI FP16 ACCELERATED</Text>
+        <View style={styles.topBar}>
+          <View>
+            <Text style={styles.eyebrow}>NOSE BIOMETRICS</Text>
+            <Text style={styles.title}>Muzzle Lab</Text>
           </View>
-          <Text style={styles.title}>Cattle Muzzle Biometrics</Text>
-          <Text style={styles.subtitle}>On-Device Neural Nasal Ridge & Groove Biometric Verification</Text>
-        </View>
-
-        {/* 3-Way Apple Cupertino Segmented Control */}
-        <View style={styles.segmentedControl}>
           <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === 'video' && styles.segmentBtnActive]}
-            onPress={() => setActiveTab('video')}
-            activeOpacity={0.8}
+            style={styles.menuButton}
+            onPress={() => setMenuOpen(value => !value)}
+            accessibilityRole="button"
+            accessibilityLabel="Open app menu"
           >
-            <Text style={[styles.segmentText, activeTab === 'video' && styles.segmentTextActive]}>
-              📹 Video Matcher
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === 'extract' && styles.segmentBtnActive]}
-            onPress={() => setActiveTab('extract')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.segmentText, activeTab === 'extract' && styles.segmentTextActive]}>
-              🔬 Frame Embedder
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.segmentBtn, activeTab === 'match' && styles.segmentBtnActive]}
-            onPress={() => setActiveTab('match')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.segmentText, activeTab === 'match' && styles.segmentTextActive]}>
-              🏛️ 1-to-N Gallery
-            </Text>
+            <Text style={styles.menuButtonText}>•••</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Hardware Telemetry Card */}
+        {menuOpen && (
+          <View style={styles.menuPanel}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { setActiveTab('match'); setMenuOpen(false); }}>
+              <Text style={styles.menuItemTitle}>Gallery matching</Text>
+              <Text style={styles.menuItemSubtitle}>Compare an embedding against saved profiles</Text>
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
+            <View style={styles.menuItem}>
+              <Text style={styles.menuItemTitle}>Device diagnostics</Text>
+              <Text style={styles.menuItemSubtitle}>{telemetry.provider} · {telemetry.cpuCores} CPU cores · {telemetry.latencyMs || '—'} ms/frame</Text>
+            </View>
+          </View>
+        )}
+
+        <View style={styles.heroIntro}>
+          <Text style={styles.heroTitle}>Cattle identity tools</Text>
+          <Text style={styles.heroSubtitle}>Run muzzle biometrics directly on this device.</Text>
+          <View style={styles.runtimeBadge}><View style={styles.runtimeDot} /><Text style={styles.runtimeText}>ON-DEVICE MODEL READY</Text></View>
+        </View>
+
+        <View style={styles.actionCards}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('extract')} activeOpacity={0.85}>
+            <View style={styles.actionIcon}><Text style={styles.actionIconText}>＋</Text></View>
+            <View style={styles.actionCopy}>
+              <Text style={styles.actionTitle}>Get embedding</Text>
+              <Text style={styles.actionDescription}>Select a cattle video and generate its 512-dimensional muzzle embedding.</Text>
+              <Text style={styles.actionLink}>Choose video <Text style={styles.actionArrow}>→</Text></Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('video')} activeOpacity={0.85}>
+            <View style={[styles.actionIcon, styles.compareIcon]}><Text style={styles.actionIconText}>⇄</Text></View>
+            <View style={styles.actionCopy}>
+              <Text style={styles.actionTitle}>Compare two videos</Text>
+              <Text style={styles.actionDescription}>Extract muzzle features from two recordings and check whether they belong to the same cow.</Text>
+              <Text style={styles.actionLink}>Start comparison <Text style={styles.actionArrow}>→</Text></Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
         <View style={styles.telemetryCard}>
           <View style={styles.telemetryHeader}>
             <Text style={styles.telemetryTitle}>HARDWARE TELEMETRY & NPU ACCELERATION</Text>
@@ -536,9 +549,24 @@ export default function App() {
           </View>
         </View>
 
+
+        {activeTab === 'home' && (
+          <View style={styles.homeHint}>
+            <Text style={styles.homeHintTitle}>How it works</Text>
+            <Text style={styles.homeHintText}>1. Generate an embedding from a video.</Text>
+            <Text style={styles.homeHintText}>2. Compare two recordings or search the local gallery.</Text>
+            <Text style={styles.homeHintText}>Everything is processed on-device when the native model is available.</Text>
+          </View>
+        )}
+
         {/* TAB 1: ON-DEVICE MOBILE VIDEO BIOMETRIC MATCHER */}
         {activeTab === 'video' && (
           <View style={styles.sectionContainer}>
+            <View style={styles.screenHeading}>
+              <TouchableOpacity onPress={() => setActiveTab('home')}><Text style={styles.backLink}>‹  Home</Text></TouchableOpacity>
+              <Text style={styles.screenTitle}>Compare two videos</Text>
+              <Text style={styles.screenSubtitle}>Choose two recordings. The model extracts frames, creates embeddings and compares the muzzle patterns.</Text>
+            </View>
             <View style={styles.videoIntroCard}>
               <Text style={styles.videoIntroTitle}>MOBILE VIDEO VERIFICATION</Text>
               <Text style={styles.videoIntroText}>
@@ -888,7 +916,12 @@ export default function App() {
         {/* TAB 2: Single Frame / Video Biometric Embedding Generator */}
         {activeTab === 'extract' && (
           <View style={styles.sectionContainer}>
-            <Text style={styles.sectionHeading}>RECORD OR UPLOAD CATTLE VIDEO</Text>
+            <View style={styles.screenHeading}>
+              <TouchableOpacity onPress={() => setActiveTab('home')}><Text style={styles.backLink}>‹  Home</Text></TouchableOpacity>
+              <Text style={styles.screenTitle}>Get embedding</Text>
+              <Text style={styles.screenSubtitle}>Upload a cattle video or record one. The app generates a 512-D muzzle representation on-device.</Text>
+            </View>
+            <Text style={styles.sectionHeading}>VIDEO INPUT</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
               <TouchableOpacity
                 style={[styles.pickButton, { flex: 1, backgroundColor: '#2563EB' }]}
@@ -1022,6 +1055,11 @@ export default function App() {
         {/* TAB 3: 1-to-N On-Device Cattle Gallery Matcher */}
         {activeTab === 'match' && (
           <View style={styles.sectionContainer}>
+            <View style={styles.screenHeading}>
+              <TouchableOpacity onPress={() => setActiveTab('home')}><Text style={styles.backLink}>‹  Home</Text></TouchableOpacity>
+              <Text style={styles.screenTitle}>Gallery matching</Text>
+              <Text style={styles.screenSubtitle}>Search this device's sample gallery using the latest embedding.</Text>
+            </View>
             <View style={styles.galleryMetaCard}>
               <View style={styles.galleryMetaRow}>
                 <Text style={styles.galleryMetaLabel}>ENROLLED GALLERY</Text>
@@ -1169,6 +1207,43 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+
+  safeArea: { flex: 1, backgroundColor: '#F5F5F7' },
+  scrollContainer: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 48 },
+  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },
+  eyebrow: { color: '#777780', fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
+  title: { fontSize: 30, fontWeight: '700', color: '#1D1D1F', letterSpacing: -0.8 },
+  menuButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E8E8ED', alignItems: 'center', justifyContent: 'center' },
+  menuButtonText: { fontSize: 19, color: '#333338', fontWeight: '800', marginTop: -8 },
+  menuPanel: { backgroundColor: '#FFFFFF', borderRadius: 16, paddingHorizontal: 16, marginBottom: 18, borderWidth: 1, borderColor: '#E5E5EA' },
+  menuItem: { paddingVertical: 13 },
+  menuItemTitle: { color: '#1D1D1F', fontSize: 14, fontWeight: '600' },
+  menuItemSubtitle: { color: '#777780', fontSize: 12, marginTop: 4 },
+  menuDivider: { height: 1, backgroundColor: '#EAEAEE' },
+  heroIntro: { marginBottom: 18 },
+  heroTitle: { color: '#1D1D1F', fontSize: 21, fontWeight: '700', letterSpacing: -0.4 },
+  heroSubtitle: { color: '#777780', fontSize: 14, marginTop: 5 },
+  runtimeBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#E8F5EC', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, marginTop: 12 },
+  runtimeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#238A4B', marginRight: 7 },
+  runtimeText: { color: '#237443', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  actionCards: { gap: 12, marginBottom: 20 },
+  actionCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, flexDirection: 'row', borderWidth: 1, borderColor: '#E7E7EC', shadowColor: '#000000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  actionIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: '#EAF1FF', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
+  compareIcon: { backgroundColor: '#E8F5EC' },
+  actionIconText: { color: '#2463D4', fontSize: 25, fontWeight: '500' },
+  actionCopy: { flex: 1 },
+  actionTitle: { color: '#1D1D1F', fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
+  actionDescription: { color: '#777780', fontSize: 13, lineHeight: 19, marginTop: 5 },
+  actionLink: { color: '#2463D4', fontSize: 13, fontWeight: '600', marginTop: 12 },
+  actionArrow: { fontSize: 16 },
+  screenHeading: { marginBottom: 16 },
+  backLink: { color: '#2463D4', fontSize: 14, fontWeight: '600', marginBottom: 12 },
+  screenTitle: { color: '#1D1D1F', fontSize: 25, fontWeight: '700', letterSpacing: -0.6 },
+  screenSubtitle: { color: '#777780', fontSize: 13, lineHeight: 19, marginTop: 6 },
+  homeHint: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E7E7EC' },
+  homeHintTitle: { color: '#1D1D1F', fontSize: 15, fontWeight: '700', marginBottom: 8 },
+  homeHintText: { color: '#777780', fontSize: 12, lineHeight: 19, marginTop: 3 },
+
   safeArea: {
     flex: 1,
     backgroundColor: '#07090E',

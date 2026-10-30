@@ -115,43 +115,37 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
     }
 
     private synchronized void initializeOnnxEngine() throws Exception {
-        if (isInitialized && ortSession != null) {
-            return;
-        }
+        if (isInitialized && ortSession != null) return;
 
         ortEnv = OrtEnvironment.getEnvironment();
         OrtSession.SessionOptions options = new OrtSession.SessionOptions();
         int cpuCores = Runtime.getRuntime().availableProcessors();
-        boolean nnapiConfigured = false;
 
+        // Register an NNAPI EP and let ONNX Runtime perform provider partitioning.
+        // A successful addNnapi call only means the provider was configured; it
+        // does not prove that every node will execute on the NPU.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             try {
                 options.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16));
-                activeExecutionProvider = "NNAPI (FP16 requested; verify provider in logs)";
-                nnapiConfigured = true;
-                Log.i(TAG, "NNAPI execution provider configured");
+                activeExecutionProvider = "ONNX Runtime NNAPI EP (FP16 enabled)";
+                Log.i(TAG, "NNAPI Execution Provider registered");
             } catch (Throwable t) {
-                Log.w(TAG, "NNAPI configuration failed, falling back to CPU: " + t.getMessage());
+                options.setIntraOpNumThreads(Math.max(1, cpuCores));
+                options.setInterOpNumThreads(1);
+                activeExecutionProvider = "ONNX Runtime CPU (" + cpuCores + " threads)";
+                Log.w(TAG, "NNAPI registration failed; CPU fallback enabled", t);
             }
-        }
-
-        if (!nnapiConfigured) {
+        } else {
             options.setIntraOpNumThreads(Math.max(1, cpuCores));
             options.setInterOpNumThreads(1);
-            activeExecutionProvider = "CPU (" + cpuCores + " threads)";
+            activeExecutionProvider = "ONNX Runtime CPU (" + cpuCores + " threads)";
         }
 
         File modelFile = new File(reactContext.getFilesDir(), "muometric_convnext_tiny_quantized.onnx");
-        if (!modelFile.exists() || modelFile.length() == 0) {
+        if (!modelFile.exists() || modelFile.length() < 1024 * 1024) {
             throw new IllegalStateException(
-                "ONNX model file is missing. A valid model must be packaged in the app assets or provisioned before inference."
-            );
-        }
-
-        long modelBytes = modelFile.length();
-        if (modelBytes < 1024 * 1024) {
-            throw new IllegalStateException(
-                "ONNX model file is only " + modelBytes + " bytes. This is not a valid model file."
+                "The ONNX model is missing or invalid (" + modelFile.length()
+                    + " bytes). The repository currently contains a Git LFS pointer instead of model weights."
             );
         }
 
@@ -159,10 +153,10 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
         if (!ortSession.getInputNames().isEmpty()) {
             inputTensorName = ortSession.getInputNames().iterator().next();
         }
-
         isInitialized = true;
-        Log.i(TAG, "ONNX model loaded: " + modelFile.getName() + " (" + modelBytes + " bytes)");
+        Log.i(TAG, "ONNX model loaded successfully: " + modelFile.getAbsolutePath());
         Log.i(TAG, "ONNX input tensor: " + inputTensorName);
+        Log.i(TAG, "Configured execution provider: " + activeExecutionProvider);
     }
 
     @ReactMethod

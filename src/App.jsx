@@ -493,13 +493,13 @@ export default function App() {
           </View>
         )}
 
-        <View style={styles.heroIntro}>
+        {activeTab === 'home' && <View style={styles.heroIntro}>
           <Text style={styles.heroTitle}>Cattle identity tools</Text>
           <Text style={styles.heroSubtitle}>Run muzzle biometrics directly on this device.</Text>
           <View style={styles.runtimeBadge}><View style={styles.runtimeDot} /><Text style={styles.runtimeText}>ON-DEVICE MODEL READY</Text></View>
         </View>
 
-        <View style={styles.actionCards}>
+        <View style={[styles.actionCards, activeTab !== 'home' && { display: 'none' }]}>
           <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('extract')} activeOpacity={0.85}>
             <View style={styles.actionIcon}><Text style={styles.actionIconText}>＋</Text></View>
             <View style={styles.actionCopy}>
@@ -518,7 +518,7 @@ export default function App() {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.telemetryCard}>
+        {activeTab === 'home' && <View style={styles.telemetryCard}>
           <View style={styles.telemetryHeader}>
             <Text style={styles.telemetryTitle}>HARDWARE TELEMETRY & NPU ACCELERATION</Text>
             <Text style={styles.telemetryStatus}>Active</Text>
@@ -547,8 +547,7 @@ export default function App() {
               </Text>
             </View>
           </View>
-        </View>
-
+        </View>}
 
         {activeTab === 'home' && (
           <View style={styles.homeHint}>
@@ -1210,48 +1209,6 @@ const styles = StyleSheet.create({
 
   safeArea: { flex: 1, backgroundColor: '#F5F5F7' },
   scrollContainer: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 48 },
-  topBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 },
-  eyebrow: { color: '#777780', fontSize: 10, fontWeight: '700', letterSpacing: 1.5 },
-  title: { fontSize: 30, fontWeight: '700', color: '#1D1D1F', letterSpacing: -0.8 },
-  menuButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#E8E8ED', alignItems: 'center', justifyContent: 'center' },
-  menuButtonText: { fontSize: 19, color: '#333338', fontWeight: '800', marginTop: -8 },
-  menuPanel: { backgroundColor: '#FFFFFF', borderRadius: 16, paddingHorizontal: 16, marginBottom: 18, borderWidth: 1, borderColor: '#E5E5EA' },
-  menuItem: { paddingVertical: 13 },
-  menuItemTitle: { color: '#1D1D1F', fontSize: 14, fontWeight: '600' },
-  menuItemSubtitle: { color: '#777780', fontSize: 12, marginTop: 4 },
-  menuDivider: { height: 1, backgroundColor: '#EAEAEE' },
-  heroIntro: { marginBottom: 18 },
-  heroTitle: { color: '#1D1D1F', fontSize: 21, fontWeight: '700', letterSpacing: -0.4 },
-  heroSubtitle: { color: '#777780', fontSize: 14, marginTop: 5 },
-  runtimeBadge: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#E8F5EC', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 6, marginTop: 12 },
-  runtimeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#238A4B', marginRight: 7 },
-  runtimeText: { color: '#237443', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
-  actionCards: { gap: 12, marginBottom: 20 },
-  actionCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 18, flexDirection: 'row', borderWidth: 1, borderColor: '#E7E7EC', shadowColor: '#000000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  actionIcon: { width: 44, height: 44, borderRadius: 13, backgroundColor: '#EAF1FF', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
-  compareIcon: { backgroundColor: '#E8F5EC' },
-  actionIconText: { color: '#2463D4', fontSize: 25, fontWeight: '500' },
-  actionCopy: { flex: 1 },
-  actionTitle: { color: '#1D1D1F', fontSize: 17, fontWeight: '700', letterSpacing: -0.2 },
-  actionDescription: { color: '#777780', fontSize: 13, lineHeight: 19, marginTop: 5 },
-  actionLink: { color: '#2463D4', fontSize: 13, fontWeight: '600', marginTop: 12 },
-  actionArrow: { fontSize: 16 },
-  screenHeading: { marginBottom: 16 },
-  backLink: { color: '#2463D4', fontSize: 14, fontWeight: '600', marginBottom: 12 },
-  screenTitle: { color: '#1D1D1F', fontSize: 25, fontWeight: '700', letterSpacing: -0.6 },
-  screenSubtitle: { color: '#777780', fontSize: 13, lineHeight: 19, marginTop: 6 },
-  homeHint: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E7E7EC' },
-  homeHintTitle: { color: '#1D1D1F', fontSize: 15, fontWeight: '700', marginBottom: 8 },
-  homeHintText: { color: '#777780', fontSize: 12, lineHeight: 19, marginTop: 3 },
-
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#07090E',
-  },
-  scrollContainer: {
-    padding: 16,
-    paddingBottom: 48,
-  },
   header: {
     marginBottom: 16,
   },
@@ -1323,34 +1280,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
-  telemetryCard: {
-    backgroundColor: '#0F141F',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#1E293B',
-    padding: 14,
-    marginBottom: 16,
-  },
-  telemetryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#1A2333',
-  },
-  telemetryTitle: {
-    color: '#64748B',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  telemetryStatus: {
-    color: '#10B981',
-    fontSize: 10,
-    fontWeight: '700',
-  },
+  telemetryCard: { backgroundColor: '#FFFFFF', borderRadius: 16, borderWidth: 1, borderColor: '#E7E7EC', padding: 16, marginBottom: 18 },
+  telemetryHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#EEEEF2' },
+  telemetryTitle: { color: '#777780', fontSize: 10, fontWeight: '700', letterSpacing: 0.7 },
+  telemetryStatus: { color: '#238A4B', fontSize: 11, fontWeight: '700' },
   telemetryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1359,28 +1292,14 @@ const styles = StyleSheet.create({
   telemetryItem: {
     width: '47%',
   },
-  telemetryLabel: {
-    color: '#64748B',
-    fontSize: 9,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  telemetryValue: {
-    color: '#E2E8F0',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  mutedText: {
-    color: '#64748B',
-    fontWeight: '400',
-    fontSize: 10,
-  },
+  telemetryLabel: { color: '#8A8A92', fontSize: 9, fontWeight: '700', letterSpacing: 0.5 },
+  telemetryValue: { color: '#1D1D1F', fontSize: 12, fontWeight: '600', marginTop: 3 },
+  mutedText: { color: '#8A8A92', fontWeight: '400', fontSize: 10 },
   sectionContainer: {
     marginBottom: 16,
   },
   videoIntroCard: {
-    backgroundColor: '#111827',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
@@ -1400,7 +1319,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   videoSelectorCard: {
-    backgroundColor: '#0F141F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#1E293B',
@@ -1433,7 +1352,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   pathInput: {
-    backgroundColor: '#07090E',
+    backgroundColor: '#FFFFFF',
     borderColor: '#1E293B',
     borderWidth: 1,
     borderRadius: 8,
@@ -1450,7 +1369,7 @@ const styles = StyleSheet.create({
   },
   pickButton: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 9,
     borderRadius: 8,
     alignItems: 'center',
@@ -1472,7 +1391,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   presetChip: {
-    backgroundColor: '#161F30',
+    backgroundColor: '#FFFFFF',
     borderColor: '#1E293B',
     borderWidth: 1,
     paddingHorizontal: 8,
@@ -1493,7 +1412,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   frameControlCard: {
-    backgroundColor: '#0F141F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
@@ -1513,7 +1432,7 @@ const styles = StyleSheet.create({
   },
   framePill: {
     flex: 1,
-    backgroundColor: '#161F30',
+    backgroundColor: '#FFFFFF',
     paddingVertical: 8,
     borderRadius: 8,
     alignItems: 'center',
@@ -1771,7 +1690,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   resultsCard: {
-    backgroundColor: '#0F141F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#1E293B',
@@ -1805,7 +1724,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   terminalContainer: {
-    backgroundColor: '#080A0F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     overflow: 'hidden',
     borderWidth: 1,
@@ -1875,7 +1794,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   galleryMetaCard: {
-    backgroundColor: '#0F141F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
@@ -1911,7 +1830,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyMatchState: {
-    backgroundColor: '#0F141F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 24,
     alignItems: 'center',
@@ -1936,7 +1855,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   candidateCard: {
-    backgroundColor: '#0F141F',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,

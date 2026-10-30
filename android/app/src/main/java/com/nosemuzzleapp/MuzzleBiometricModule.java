@@ -54,6 +54,7 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
     private static final int CHANNELS = 3;
     private static final int EMBEDDING_DIM = 512;
     private static final int VIDEO_PICK_REQUEST_CODE = 4421;
+    private static final int VIDEO_RECORD_REQUEST_CODE = 4422;
 
     private final ReactApplicationContext reactContext;
     private OrtEnvironment ortEnv;
@@ -72,14 +73,14 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
         reactContext.addActivityEventListener(new BaseActivityEventListener() {
             @Override
             public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-                if (requestCode == VIDEO_PICK_REQUEST_CODE) {
+                if (requestCode == VIDEO_PICK_REQUEST_CODE || requestCode == VIDEO_RECORD_REQUEST_CODE) {
                     if (mPickerPromise != null) {
                         if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
                             Uri videoUri = data.getData();
                             WritableMap map = Arguments.createMap();
                             map.putString("uri", videoUri.toString());
 
-                            String displayName = "mobile_muzzle_video.mp4";
+                            String displayName = (requestCode == VIDEO_RECORD_REQUEST_CODE) ? "recorded_camera_video.mp4" : "mobile_muzzle_video.mp4";
                             long fileSize = 0;
                             try (Cursor cursor = reactContext.getContentResolver().query(videoUri, null, null, null, null)) {
                                 if (cursor != null && cursor.moveToFirst()) {
@@ -94,9 +95,10 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
 
                             map.putString("fileName", displayName);
                             map.putDouble("fileSizeMb", Math.round((fileSize / (1024.0 * 1024.0)) * 10.0) / 10.0);
+                            map.putString("source", (requestCode == VIDEO_RECORD_REQUEST_CODE) ? "camera" : "gallery");
                             mPickerPromise.resolve(map);
                         } else {
-                            mPickerPromise.reject("PICK_CANCELLED", "Video selection was cancelled by user.");
+                            mPickerPromise.reject("PICK_CANCELLED", "Video operation was cancelled by user.");
                         }
                         mPickerPromise = null;
                     }
@@ -227,6 +229,29 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
             this.mPickerPromise = null;
             Log.e(TAG, "Error launching video picker", e);
             promise.reject("PICKER_ERROR", "Failed to launch video picker: " + e.getMessage());
+        }
+    }
+
+    @ReactMethod
+    public void recordVideo(Promise promise) {
+        Activity currentActivity = getCurrentActivity();
+        if (currentActivity == null) {
+            promise.reject("NO_ACTIVITY", "Current Android activity is not available.");
+            return;
+        }
+        this.mPickerPromise = promise;
+        try {
+            Intent intent = new Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE);
+            intent.putExtra(android.provider.MediaStore.EXTRA_DURATION_LIMIT, 15);
+            intent.putExtra(android.provider.MediaStore.EXTRA_VIDEO_QUALITY, 1);
+            currentActivity.startActivityForResult(
+                Intent.createChooser(intent, "Record Cattle Muzzle Video"),
+                VIDEO_RECORD_REQUEST_CODE
+            );
+        } catch (Exception e) {
+            this.mPickerPromise = null;
+            Log.e(TAG, "Error launching camera video recorder", e);
+            promise.reject("CAMERA_ERROR", "Failed to launch camera: " + e.getMessage());
         }
     }
 

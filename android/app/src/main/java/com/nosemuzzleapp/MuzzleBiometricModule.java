@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.zip.GZIPInputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -120,70 +121,48 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
 
         ortEnv = OrtEnvironment.getEnvironment();
         OrtSession.SessionOptions options = new OrtSession.SessionOptions();
-
-        // 1. Hardware Execution Provider Configuration
         int cpuCores = Runtime.getRuntime().availableProcessors();
-        boolean nnapiSuccess = false;
+        boolean nnapiConfigured = false;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) { // Android 8.1+ (API 27+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
             try {
-                // Configure NNAPI with NNAPIFlags.USE_FP16 for mobile NPU/GPU acceleration
                 options.addNnapi(EnumSet.of(NNAPIFlags.USE_FP16));
-                activeExecutionProvider = "NNAPI (FP16 Accelerated GPU/NPU)";
-                nnapiSuccess = true;
-                Log.i(TAG, "Hardware provider configured: " + activeExecutionProvider);
+                activeExecutionProvider = "NNAPI (FP16 requested; verify provider in logs)";
+                nnapiConfigured = true;
+                Log.i(TAG, "NNAPI execution provider configured");
             } catch (Throwable t) {
-                Log.w(TAG, "NNAPI initialization failed, falling back to CPU: " + t.getMessage());
+                Log.w(TAG, "NNAPI configuration failed, falling back to CPU: " + t.getMessage());
             }
         }
 
-        if (!nnapiSuccess) {
-            // Fallback to XNNPACK / Multi-Core CPU
+        if (!nnapiConfigured) {
             options.setIntraOpNumThreads(Math.max(1, cpuCores));
             options.setInterOpNumThreads(1);
-            activeExecutionProvider = "Multi-Core CPU / XNNPACK (" + cpuCores + " cores)";
-            Log.i(TAG, "Hardware provider fallback: " + activeExecutionProvider);
+            activeExecutionProvider = "CPU (" + cpuCores + " threads)";
         }
 
-        // 2. Load Model from Android Assets into internal storage cache
-        String modelAssetPath = "models/muometric_convnext_tiny_quantized.onnx";
         File modelFile = new File(reactContext.getFilesDir(), "muometric_convnext_tiny_quantized.onnx");
-
         if (!modelFile.exists() || modelFile.length() == 0) {
-            InputStream is = null;
-            try {
-                is = reactContext.getAssets().open(modelAssetPath);
-            } catch (Exception e) {
-                // Fallback to alternative model name
-                modelAssetPath = "models/muzzle_biometric.onnx";
-                modelFile = new File(reactContext.getFilesDir(), "muzzle_biometric.onnx");
-                is = reactContext.getAssets().open(modelAssetPath);
-            }
+            throw new IllegalStateException(
+                "ONNX model file is missing. A valid model must be packaged in the app assets or provisioned before inference."
+            );
+        }
 
-            try (FileOutputStream fos = new FileOutputStream(modelFile)) {
-                byte[] buffer = new byte[65536];
-                int read;
-                while ((read = is.read(buffer)) != -1) {
-                    fos.write(buffer, 0, read);
-                }
-                fos.flush();
-            } finally {
-                if (is != null) {
-                    is.close();
-                }
-            }
+        long modelBytes = modelFile.length();
+        if (modelBytes < 1024 * 1024) {
+            throw new IllegalStateException(
+                "ONNX model file is only " + modelBytes + " bytes. This is not a valid model file."
+            );
         }
 
         ortSession = ortEnv.createSession(modelFile.getAbsolutePath(), options);
-
-        // Detect input tensor name dynamically
         if (!ortSession.getInputNames().isEmpty()) {
             inputTensorName = ortSession.getInputNames().iterator().next();
-            Log.i(TAG, "Detected ONNX Input Tensor Name: " + inputTensorName);
         }
 
         isInitialized = true;
-        Log.i(TAG, "ONNX Runtime initialized successfully with model: " + modelFile.getName());
+        Log.i(TAG, "ONNX model loaded: " + modelFile.getName() + " (" + modelBytes + " bytes)");
+        Log.i(TAG, "ONNX input tensor: " + inputTensorName);
     }
 
     @ReactMethod

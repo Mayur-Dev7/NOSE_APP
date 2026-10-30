@@ -448,7 +448,7 @@ export default function App() {
           <Text style={styles.heroTitle}>Cattle identity tools</Text>
           <Text style={styles.heroSubtitle}>Run muzzle biometrics directly on this device.</Text>
           <View style={styles.runtimeBadge}><View style={styles.runtimeDot} /><Text style={styles.runtimeText}>ON-DEVICE PROCESSING</Text></View>
-        </View>
+        </View>}
 
         <View style={[styles.actionCards, activeTab !== 'home' && { display: 'none' }]}>
           <TouchableOpacity style={styles.actionCard} onPress={() => setActiveTab('extract')} activeOpacity={0.85}>

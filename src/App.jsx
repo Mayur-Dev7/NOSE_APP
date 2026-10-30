@@ -390,57 +390,30 @@ export default function App() {
     setCopyToast('');
 
     try {
-      if (Platform.OS === 'android') {
-        // If user uploaded or recorded a video:
-        if (customMedia && customMedia.uri) {
-          if (customMedia.isVideo && MuzzleBiometricModule?.extractFramesAndEmbedFromVideo) {
-            const res = await MuzzleBiometricModule.extractFramesAndEmbedFromVideo(customMedia.uri, 5);
-            if (res && res.meanEmbedding && res.meanEmbedding.length === 512) {
-              setLatestEmbedding(res.meanEmbedding);
-              setTelemetry(prev => ({
-                ...prev,
-                latencyMs: res.totalInferenceTimeMs || 48.0,
-                provider: res.executionProvider || prev.provider,
-                peakMemoryMb: 52.4,
-              }));
-              return;
-            }
-          } else if (MuzzleBiometricModule?.extractMuzzleEmbedding) {
-            const res = await MuzzleBiometricModule.extractMuzzleEmbedding(customMedia.uri);
-            if (res && res.embedding && res.embedding.length === 512) {
-              setLatestEmbedding(res.embedding);
-              return;
-            }
-          }
-        } else if (MuzzleBiometricModule?.extractMuzzleEmbedding) {
-          const res = await MuzzleBiometricModule.extractMuzzleEmbedding(selectedMuzzle.assetName);
-          if (res && res.embedding && res.embedding.length === 512) {
-            setLatestEmbedding(res.embedding);
-            setTelemetry(prev => ({
-              ...prev,
-              latencyMs: res.inferenceMs || 34.2,
-              provider: res.provider || prev.provider,
-              peakMemoryMb: res.peakMemoryMb || prev.peakMemoryMb,
-              cpuCores: res.cpuCores || prev.cpuCores,
-            }));
-            return;
-          }
-        }
+      if (Platform.OS !== 'android' || !MuzzleBiometricModule?.extractFramesAndEmbedFromVideo) {
+        throw new Error('Native video embedding is available only in the Android build.');
+      }
+      if (!customMedia?.uri) {
+        throw new Error('Select or record a cattle video before extracting an embedding.');
       }
 
-      await new Promise(r => setTimeout(r, 42));
-      const fallbackVec = selectedMuzzle.presetEmbedding || PRESET_QUERY_COWS.sample_cow_a.embedding;
-      setLatestEmbedding(fallbackVec);
+      const res = await MuzzleBiometricModule.extractFramesAndEmbedFromVideo(customMedia.uri, 5);
+      if (!res?.meanEmbedding || res.meanEmbedding.length !== 512) {
+        throw new Error('The video pipeline did not return a valid 512-dimensional embedding.');
+      }
+
+      setLatestEmbedding(res.meanEmbedding);
       setTelemetry(prev => ({
         ...prev,
-        latencyMs: 38.6,
-        provider: 'NNAPI (FP16 Accelerated GPU/NPU)',
-        peakMemoryMb: 48.2,
+        latencyMs: res.hardwareStats?.avgInferenceMsPerFrame || prev.latencyMs,
+        provider: res.hardwareStats?.provider || prev.provider,
+        peakMemoryMb: res.hardwareStats?.peakMemoryMb || prev.peakMemoryMb,
+        cpuCores: res.hardwareStats?.cpuCores || prev.cpuCores,
       }));
     } catch (err) {
-      console.warn('Inference error:', err);
-      const fallbackVec = selectedMuzzle.presetEmbedding || PRESET_QUERY_COWS.sample_cow_a.embedding;
-      setLatestEmbedding(fallbackVec);
+      console.warn('Embedding extraction failed:', err);
+      setLatestEmbedding(null);
+      Alert.alert('Embedding extraction failed', err.message || 'The selected video could not be processed.');
     } finally {
       setIsExtracting(false);
     }

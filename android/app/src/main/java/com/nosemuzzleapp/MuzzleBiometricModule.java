@@ -479,7 +479,7 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
                         rawFrame = retriever.getFrameAtTime(targetTimeUs);
                     }
                     if (rawFrame == null) {
-                        rawFrame = createSyntheticMuzzleBitmap();
+                        throw new IllegalStateException("Could not decode video frame " + i + " at " + timeMs + " ms. No embedding was generated.");
                     }
 
                     // Canonical 448x448 representation

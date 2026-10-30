@@ -314,7 +314,7 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
 
             originalBitmap = decodeBitmapFromUri(imageUri);
             if (originalBitmap == null) {
-                originalBitmap = createSyntheticMuzzleBitmap();
+                throw new IllegalArgumentException("Could not decode the selected image. No synthetic embedding will be returned.");
             }
 
             float[] l2Vec = runInferenceOnBitmap(originalBitmap);

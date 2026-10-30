@@ -18,7 +18,6 @@ import {
 
 import {
   DEFAULT_GALLERY_CANDIDATES,
-  PRESET_QUERY_COWS,
   runClientSide1toNMatch,
   computeBiometricDistance,
   normalizeVector,
@@ -54,50 +53,6 @@ const VIDEO_PRESETS = [
   },
 ];
 
-// Sample cattle muzzles for single-frame extraction
-const SAMPLE_MUZZLES = [
-  {
-    id: 'cow_macro',
-    name: 'Sample Cow A (Macro Muzzle)',
-    tag: 'US-94210-A',
-    breed: 'Holstein Friesian',
-    source: require('./assets/images/cow_muzzle_macro.jpg'),
-    assetName: 'sample_muzzles/cow_muzzle_macro.jpg',
-    presetEmbedding: PRESET_QUERY_COWS.sample_cow_a?.embedding,
-    notes: 'Macro ridge groove clarity',
-  },
-  {
-    id: 'cow_frame_1',
-    name: 'Sample Cow B (Video Frame 1)',
-    tag: 'RF-88201-C',
-    breed: 'Simmental Cross',
-    source: require('./assets/images/cow_video_frame_1.jpg'),
-    assetName: 'sample_muzzles/cow_video_frame_1.jpg',
-    presetEmbedding: PRESET_QUERY_COWS.sample_cow_b?.embedding,
-    notes: 'Canonical aligned 448x448',
-  },
-  {
-    id: 'cow_front_bw',
-    name: 'Sample Cow C (Black & White)',
-    tag: 'US-94210-B',
-    breed: 'Holstein Dairy',
-    source: require('./assets/images/cow_front_bw.jpg'),
-    assetName: 'sample_muzzles/cow_front_bw.jpg',
-    presetEmbedding: PRESET_QUERY_COWS.sample_cow_c?.embedding,
-    notes: 'High-contrast illumination',
-  },
-  {
-    id: 'buffalo_front',
-    name: 'Sample Buffalo D (Front)',
-    tag: 'IN-77312-X',
-    breed: 'Murrah Water Buffalo',
-    source: require('./assets/images/buffalo_front_face.jpg'),
-    assetName: 'sample_muzzles/buffalo_front_face.jpg',
-    presetEmbedding: PRESET_QUERY_COWS.sample_cow_d?.embedding,
-    notes: 'Melanin-rich nasal dermatoglyphics',
-  },
-];
-
 export default function App() {
   const [activeTab, setActiveTab] = useState('home'); // 'video' | 'extract' | 'match'
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,7 +70,6 @@ export default function App() {
   const [videoComparison, setVideoComparison] = useState(null);
 
   // Single Frame Extractor States
-  const [selectedMuzzle, setSelectedMuzzle] = useState(SAMPLE_MUZZLES[0]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [latestEmbedding, setLatestEmbedding] = useState(null);
 
@@ -405,7 +359,7 @@ export default function App() {
     }
     Share.share({
       message: JSON.stringify(latestEmbedding),
-      title: `${selectedMuzzle.name} 512-D Vector`,
+      title: `${customMedia?.name || 'Video'} 512-D Vector`,
     });
     setCopyToast('Vector copied / share dialog opened!');
     setTimeout(() => setCopyToast(''), 3000);
@@ -418,7 +372,7 @@ export default function App() {
         <View style={styles.topBar}>
           <View>
             <Text style={styles.eyebrow}>NOSE BIOMETRICS</Text>
-            <Text style={styles.title}>Muzzle Lab</Text>
+            <Text style={styles.brandTitle}>Muzzle Lab</Text>
           </View>
           <TouchableOpacity
             style={styles.menuButton}
@@ -905,33 +859,6 @@ export default function App() {
               </View>
             )}
 
-            <Text style={styles.sectionHeading}>OR SELECT PRESET MUZZLE FRAME</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.carousel}>
-              {SAMPLE_MUZZLES.map(muzzle => {
-                const isSelected = selectedMuzzle.id === muzzle.id;
-                return (
-                  <TouchableOpacity
-                    key={muzzle.id}
-                    style={[styles.muzzleCard, isSelected && styles.muzzleCardSelected]}
-                    onPress={() => setSelectedMuzzle(muzzle)}
-                    activeOpacity={0.8}
-                  >
-                    <Image source={muzzle.source} style={styles.muzzleImage} resizeMode="cover" />
-                    <View style={styles.muzzleInfo}>
-                      <Text style={styles.muzzleName} numberOfLines={1}>{muzzle.name}</Text>
-                      <Text style={styles.muzzleTag}>{muzzle.tag} • {muzzle.breed}</Text>
-                      <Text style={styles.muzzleNotes}>{muzzle.notes}</Text>
-                    </View>
-                    {isSelected && (
-                      <View style={styles.selectedBadge}>
-                        <Text style={styles.selectedBadgeText}>SELECTED</Text>
-                      </View>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
             <TouchableOpacity
               style={[styles.primaryButton, isExtracting && styles.primaryButtonDisabled]}
               onPress={handleExtractEmbedding}
@@ -1158,8 +1085,211 @@ export default function App() {
 
 const styles = StyleSheet.create({
 
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 26,
+  },
+  eyebrow: {
+    color: '#667085',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.4,
+    marginBottom: 4,
+  },
+  brandTitle: {
+    color: '#101828',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.8,
+  },
+  menuButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E4E7EC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuButtonText: {
+    color: '#344054',
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginTop: -8,
+  },
+  menuPanel: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E4E7EC',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    marginTop: -14,
+    marginBottom: 20,
+  },
+  menuItem: {
+    paddingVertical: 13,
+  },
+  menuItemTitle: {
+    color: '#101828',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  menuItemSubtitle: {
+    color: '#667085',
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3,
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: '#EAECF0',
+  },
+  heroIntro: {
+    marginBottom: 18,
+  },
+  heroTitle: {
+    color: '#101828',
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+  },
+  heroSubtitle: {
+    color: '#667085',
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 5,
+  },
+  runtimeBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF3',
+    borderColor: '#ABEFC6',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginTop: 12,
+  },
+  runtimeDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#12B76A',
+    marginRight: 7,
+  },
+  runtimeText: {
+    color: '#027A48',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  actionCards: {
+    gap: 12,
+    marginBottom: 18,
+  },
+  actionCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    borderColor: '#EAECF0',
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 16,
+  },
+  actionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#EFF4FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 13,
+  },
+  actionIconText: {
+    color: '#2563EB',
+    fontSize: 25,
+    fontWeight: '600',
+  },
+  actionCopy: {
+    flex: 1,
+  },
+  actionTitle: {
+    color: '#101828',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  actionDescription: {
+    color: '#667085',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 5,
+  },
+  actionLink: {
+    color: '#2563EB',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: 10,
+  },
+  actionArrow: {
+    color: '#2563EB',
+    fontSize: 15,
+  },
+  compareIcon: {
+    backgroundColor: '#ECFDF3',
+  },
+  homeHint: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#EAECF0',
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 15,
+    marginBottom: 16,
+  },
+  homeHintTitle: {
+    color: '#101828',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 7,
+  },
+  homeHintText: {
+    color: '#667085',
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 3,
+  },
+  screenHeading: {
+    marginBottom: 20,
+  },
+  backLink: {
+    color: '#2563EB',
+    fontSize: 13,
+    fontWeight: '700',
+    marginBottom: 14,
+  },
+  screenTitle: {
+    color: '#101828',
+    fontSize: 25,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  screenSubtitle: {
+    color: '#667085',
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 6,
+  },
+
   safeArea: { flex: 1, backgroundColor: '#F5F5F7' },
-  scrollContainer: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 48 },
+  scrollContainer: {
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 14 : 14,
+    paddingBottom: 48,
+  },
   header: {
     marginBottom: 16,
   },
@@ -1258,13 +1388,13 @@ const styles = StyleSheet.create({
     borderLeftColor: '#3B82F6',
   },
   videoIntroTitle: {
-    color: '#93C5FD',
+    color: '#2563EB',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.6,
   },
   videoIntroText: {
-    color: '#94A3B8',
+    color: '#596579',
     fontSize: 11,
     lineHeight: 16,
     marginTop: 4,
@@ -1295,7 +1425,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   videoSelectorName: {
-    color: '#E2E8F0',
+    color: '#1D2939',
     fontSize: 12,
     fontWeight: '700',
     flex: 1,
@@ -1320,13 +1450,13 @@ const styles = StyleSheet.create({
   },
   pickButton: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#2563EB',
     paddingVertical: 9,
     borderRadius: 8,
     alignItems: 'center',
   },
   pickButtonText: {
-    color: '#93C5FD',
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -1395,7 +1525,7 @@ const styles = StyleSheet.create({
     borderColor: '#3B82F6',
   },
   framePillText: {
-    color: '#94A3B8',
+    color: '#475569',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -1580,7 +1710,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   sectionHeading: {
-    color: '#94A3B8',
+    color: '#667085',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.8,
@@ -1654,7 +1784,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   resultsTitle: {
-    color: '#FFFFFF',
+    color: '#1D2939',
     fontSize: 13,
     fontWeight: '800',
   },

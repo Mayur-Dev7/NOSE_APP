@@ -214,74 +214,52 @@ export default function App() {
   // Run Multi-Frame On-Device Video Verification
   const handleRunVideoVerification = async () => {
     if (!videoPathA || !videoPathB) {
-      Alert.alert('Missing Videos', 'Please specify both Video A and Video B.');
+      Alert.alert('Missing videos', 'Select both videos before comparing them.');
+      return;
+    }
+
+    if (Platform.OS !== 'android' || !MuzzleBiometricModule?.extractFramesAndEmbedFromVideo ||
+        !MuzzleBiometricModule?.compareVideoEmbeddings) {
+      Alert.alert('Android build required', 'The native ONNX video pipeline is available only in the Android app.');
       return;
     }
 
     setIsVideoVerifying(true);
-    setVideoVerifyProgress('Initializing NNAPI / ONNX Runtime session...');
+    setVideoComparison(null);
+    setVideoResultA(null);
+    setVideoResultB(null);
+    setVideoVerifyProgress('Loading model and extracting frames from Video A...');
 
     try {
-      if (Platform.OS === 'android' && MuzzleBiometricModule?.extractFramesAndEmbedFromVideo) {
-        setVideoVerifyProgress(`Extracting ${numFrames} frames from Video A...`);
-        const resA = await MuzzleBiometricModule.extractFramesAndEmbedFromVideo(videoPathA, numFrames);
-        setVideoResultA(resA);
-
-        setVideoVerifyProgress(`Extracting ${numFrames} frames from Video B...`);
-        const resB = await MuzzleBiometricModule.extractFramesAndEmbedFromVideo(videoPathB, numFrames);
-        setVideoResultB(resB);
-
-        setVideoVerifyProgress('Computing consensus cosine similarity & outlier pruning...');
-        const comparison = await MuzzleBiometricModule.compareVideoEmbeddings(resA, resB);
-        setVideoComparison(comparison);
-
-        // Update hardware telemetry
-        if (resA.hardwareStats) {
-          setTelemetry(prev => ({
-            ...prev,
-            provider: resA.hardwareStats.provider || prev.provider,
-            latencyMs: resA.hardwareStats.avgInferenceMsPerFrame || prev.latencyMs,
-            peakMemoryMb: Math.max(resA.hardwareStats.peakMemoryMb || 0, resB.hardwareStats?.peakMemoryMb || 0),
-            cpuCores: resA.hardwareStats.cpuCores || prev.cpuCores,
-          }));
-        }
-        return;
+      const resA = await MuzzleBiometricModule.extractFramesAndEmbedFromVideo(videoPathA, numFrames);
+      if (!resA?.meanEmbedding || resA.meanEmbedding.length !== 512) {
+        throw new Error('Video A did not produce a valid 512-D embedding.');
       }
+      setVideoResultA(resA);
 
-      // Preview / Fallback Simulation
-      await new Promise(r => setTimeout(r, 600));
-      setVideoVerifyProgress('Processing Video A frames...');
-      await new Promise(r => setTimeout(r, 600));
-      setVideoVerifyProgress('Processing Video B frames...');
-      await new Promise(r => setTimeout(r, 400));
+      setVideoVerifyProgress('Extracting frames from Video B...');
+      const resB = await MuzzleBiometricModule.extractFramesAndEmbedFromVideo(videoPathB, numFrames);
+      if (!resB?.meanEmbedding || resB.meanEmbedding.length !== 512) {
+        throw new Error('Video B did not produce a valid 512-D embedding.');
+      }
+      setVideoResultB(resB);
 
-      const isSame = videoPathA.includes('cow_a') && videoPathB.includes('cow_a');
-      const sim = isSame ? 93.45 : 34.20;
-      const compFallback = {
-        meanMatchPct: sim,
-        medianMatchPct: isSame ? 92.80 : 33.90,
-        consensusPct: isSame ? 93.12 : 34.05,
-        cosineMean: isSame ? 0.9345 : 0.3420,
-        cosineMedian: isSame ? 0.9280 : 0.3390,
-        l2DistanceMean: isSame ? 0.3619 : 1.1471,
-        l2DistanceMedian: isSame ? 0.3794 : 1.1497,
-        decision: isSame ? 'MATCH' : 'DISTINCT',
-        isMatch: isSame,
-        verdict: isSame
-          ? 'MATCH: Same Cattle Muzzle Identity Verified'
-          : 'DISTINCT: Different Cattle Verified',
-        verdictColor: isSame ? 'emerald' : 'rose',
-      };
-      setVideoComparison(compFallback);
+      setVideoVerifyProgress('Comparing the two video embeddings...');
+      const comparison = await MuzzleBiometricModule.compareVideoEmbeddings(resA, resB);
+      setVideoComparison(comparison);
+
+      const stats = resA.hardwareStats || {};
       setTelemetry(prev => ({
         ...prev,
-        latencyMs: 34.8,
-        provider: 'NNAPI (FP16 Accelerated GPU/NPU)',
-        peakMemoryMb: 52.3,
+        provider: stats.provider || 'Execution provider not reported',
+        latencyMs: stats.avgInferenceMsPerFrame || 0,
+        peakMemoryMb: stats.peakMemoryMb || prev.peakMemoryMb,
+        cpuCores: stats.cpuCores || prev.cpuCores,
       }));
     } catch (err) {
-      console.warn('Video verification error:', err);
-      Alert.alert('Verification Failed', err.message || 'Error executing video pipeline.');
+      console.warn('Video verification failed:', err);
+      setVideoComparison(null);
+      Alert.alert('Video verification failed', err.message || 'The selected videos could not be processed.');
     } finally {
       setIsVideoVerifying(false);
       setVideoVerifyProgress('');

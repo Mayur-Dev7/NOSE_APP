@@ -160,3 +160,23 @@ cd android
 ## 📄 License
 Proprietary & Confidential - Cattle Muzzle Biometric Identification System.
 All rights reserved.
+
+
+## Model weights: Git LFS and compressed Android asset
+
+The quantized ONNX file is approximately 63.6 MB. The Git-tracked ONNX entry is a Git LFS pointer, not the model bytes. A checkout must have Git LFS installed and must successfully pull the LFS object before using the model.
+
+For an APK intended to include compressed model weights, place the real file at:
+
+`android/app/src/main/assets/models/muometric_convnext_tiny_quantized.onnx.gz`
+
+The Android native loader inflates this asset once into app-private storage as `muometric_convnext_tiny_quantized.onnx`, then creates the ONNX Runtime session from the restored file. The compressed model should be generated from the actual LFS model, not from the small pointer text file:
+
+```bash
+git lfs install
+git lfs pull
+gzip -9 -c android/app/src/main/assets/models/muometric_convnext_tiny_quantized.onnx \
+  > android/app/src/main/assets/models/muometric_convnext_tiny_quantized.onnx.gz
+```
+
+Do not commit both the expanded model and its compressed copy to normal Git history. Keep the compressed artifact in Git LFS or a release asset and verify its SHA-256 before shipping. If neither the real LFS object nor the compressed model asset is present, inference intentionally stops with a model-missing error rather than returning a fabricated embedding.

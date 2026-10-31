@@ -276,6 +276,24 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
         }
     }
 
+    @ReactMethod
+    public void copyToClipboard(String label, String text, Promise promise) {
+        try {
+            android.content.ClipboardManager clipboard = (android.content.ClipboardManager)
+                reactContext.getSystemService(Context.CLIPBOARD_SERVICE);
+            if (clipboard != null) {
+                android.content.ClipData clip = android.content.ClipData.newPlainText(label, text);
+                clipboard.setPrimaryClip(clip);
+                promise.resolve(true);
+            } else {
+                promise.reject("CLIPBOARD_UNAVAILABLE", "Clipboard manager unavailable");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to copy to clipboard", e);
+            promise.reject("CLIPBOARD_ERROR", e.getMessage(), e);
+        }
+    }
+
     /**
      * Executes ONNX Runtime inference on a Bitmap image, scaling it to 224x224
      * and performing ImageNet RGB normalization. Returns a 512-D L2-normalized float array.
@@ -757,7 +775,12 @@ public class MuzzleBiometricModule extends ReactContextBaseJavaModule {
                 verdict = "MATCH: Same Cattle Muzzle Identity Verified";
                 verdictColor = "emerald";
                 isMatch = true;
-            } else if (consensusPct >= 65.0) {
+            } else if (consensusPct >= 75.0) {
+                decision = "LIKELY";
+                verdict = "LIKELY: Strong Biometric Agreement";
+                verdictColor = "teal";
+                isMatch = true;
+            } else if (consensusPct >= 60.0) {
                 decision = "INCONCLUSIVE";
                 verdict = "INCONCLUSIVE: Partial Ridge Correlation (Possible Angle / Blur)";
                 verdictColor = "amber";

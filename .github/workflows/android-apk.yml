@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - feat/apple-style-two-actions
+      - feature/pipeline-parity-and-two-actions
 
 permissions:
   contents: read
